@@ -298,7 +298,7 @@ def cli_main():
         '''
         stp hmmer
         '''
-        runHmmScan(outPath, str(args.hmm_cpu), dbDir, str(args.stp_eval), str(args.stp_cov), "stp")
+        runHmmScan(outPath, args.hmm_cpu, dbDir, str(args.stp_eval), str(args.stp_cov), "stp")
 
         if os.path.exists(f"{outPath}uniInput.split"):
             shutil.rmtree(f"{outPath}uniInput.split", ignore_errors=True)
