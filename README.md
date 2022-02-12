@@ -27,10 +27,10 @@ Update Info
     7. Docker file is updated and we simplify the installation step.
 
 - v2.0.11 please use `pip install run-dbcan==2.0.11` for update
-    1. Add ec number prediction to hotpep result; 
+    1. Add ec number prediction to hotpep result;
     2. 04/21/2020 dbCAN2 Hotpep PPR patterns updated to most recent release of CAZyDB (2019). Also missing group EC# files for families added in;
     3. Revising the output name file in hotpep as random number, to make the program more robust for paralleing running.
-    4. Prioritizing the CAZyme prediction over TF/TC/STP prediction when preparing gff input file for CGC-Finder. 
+    4. Prioritizing the CAZyme prediction over TF/TC/STP prediction when preparing gff input file for CGC-Finder.
     5. Rewrite the installation steps. Recommend user to use customized virtual environment (use certain python version).
     6. Fix the duplicate ACC of tf-2.hmm to make it compatiable for the newest hmmer (3.3). Delete version limitatino to hmmer.
     7. Fix the prodigal predicted gff file end with `";"` problem.
@@ -68,7 +68,7 @@ Python Package Usage
 2. Create virtual environment with dependencies and activate the virtual environment.
 
 ```
-conda create -n run_dbcan python=3.8 diamond hmmer prodigal -c conda-forge -c bioconda
+conda create -n run_dbcan python=3.8 diamond hmmer prodigal seqkit -c conda-forge -c bioconda
 conda activate run_dbcan
 ```
 
@@ -79,7 +79,7 @@ pip install dbcan==3.0.1
 ```
 
 
-4. Database Installation.
+4. Database Installation.  At time of this writing V10 was latest.  visit http://bcb.unl.edu/dbCAN2/download to see if it is updated and change download URLs accordingly.
 ```
 git clone https://github.com/linnabrown/run_dbcan.git
 cd run_dbcan
@@ -87,10 +87,10 @@ test -d db || mkdir db
 cd db \
     && wget http://bcb.unl.edu/dbCAN2/download/CAZyDB.09242021.fa && diamond makedb --in CAZyDB.09242021.fa -d CAZy \
     && wget https://bcb.unl.edu/dbCAN2/download/Databases/V10/dbCAN-HMMdb-V10.txt && mv dbCAN-HMMdb-V10.txt dbCAN.txt && hmmpress dbCAN.txt \
-    && wget http://bcb.unl.edu/dbCAN2/download/Databases/tcdb.fa && diamond makedb --in tcdb.fa -d tcdb \
-    && wget http://bcb.unl.edu/dbCAN2/download/Databases/tf-1.hmm && hmmpress tf-1.hmm \
-    && wget http://bcb.unl.edu/dbCAN2/download/Databases/tf-2.hmm && hmmpress tf-2.hmm \
-    && wget http://bcb.unl.edu/dbCAN2/download/Databases/stp.hmm && hmmpress stp.hmm \
+    && wget https://bcb.unl.edu/dbCAN2/download/Databases/V10/tcdb.fa && diamond makedb --in tcdb.fa -d tcdb \
+    && wget -O tf-1 http://bcb.unl.edu/dbCAN2/download/Databases/V10/tf-1.hmm && hmmpress tf-1 && mv tf-1 tf-1.hmm \
+    && wget -O tf-2 http://bcb.unl.edu/dbCAN2/download/Databases/V10/tf-2.hmm && hmmpress tf-2 && mv tf-2 tf-2.hmm \
+    && wget -O stp http://bcb.unl.edu/dbCAN2/download/Databases/V10/stp.hmm && hmmpress stp && mv stp stp.hmm \
     && cd ../ && wget http://bcb.unl.edu/dbCAN2/download/Samples/EscheriaColiK12MG1655.fna \
     && wget http://bcb.unl.edu/dbCAN2/download/Samples/EscheriaColiK12MG1655.faa \
     && wget http://bcb.unl.edu/dbCAN2/download/Samples/EscheriaColiK12MG1655.gff
@@ -163,6 +163,8 @@ P.S.: You do not need to download `CGCFinder` and `hmmscan-parser` because they 
 [Python3]--Be sure to use python3, not python2
 
 [DIAMOND](https://github.com/bbuchfink/diamond)-- please install from github as instructions.
+
+[seqkit](https://bioinf.shenwei.me/seqkit/) -- please download and install; required to split input fasta file to speed up parallel hmmscan
 
 [HMMER](hmmer.org)
 
