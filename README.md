@@ -195,11 +195,11 @@ P.S.: You do not need to download `CGCFinder` and `hmmscan-parser` because they 
 
 [tcdb.fa](http://bcb.unl.edu/dbCAN2/download/Databases/tcdb.fa)--use `diamond makedb --in tcdb.fa -d tcdb`
 
-[tf-1.hmm](http://bcb.unl.edu/dbCAN2/download/Databases/tf-1.hmm)--use `hmmpress tf-1.hmm`
+[tf-1.hmm](http://bcb.unl.edu/dbCAN2/download/Databases/tf-1.hmm)--use `mv tf-1.hmm tf-1 && hmmpress tf-1`
 
-[tf-2.hmm](http://bcb.unl.edu/dbCAN2/download/Databases/tf-2.hmm)--use `hmmpress tf-2.hmm`
+[tf-2.hmm](http://bcb.unl.edu/dbCAN2/download/Databases/tf-2.hmm)--use `mv tf-2.hmm tf-1 && hmmpress tf-2`
 
-[stp.hmm](http://bcb.unl.edu/dbCAN2/download/Databases/stp.hmm)--use `hmmpress stp.hmm`
+[stp.hmm](http://bcb.unl.edu/dbCAN2/download/Databases/stp.hmm)--use `mv stp.hmm stp && hmmpress stp`
 
 
 Params
@@ -215,12 +215,13 @@ the AuxillaryFile must be a GFF or BED format file containing gene positioning
 information. Otherwise, the AuxillaryFile may be left blank.
 
 [-t Tools] 		- optional, allows user to select a combination of tools to run. The options are any combination of 'diamond', 'hmmer', and 'eCAMI'. The default value is 'all' which runs all three tools.
+Can repeat for only 2, e.g ``-t diamond -t hmmer``
 
 [--dbCANFile]   - optional, allows user to set the file name of dbCAN HMM Database.
 
 [--dia_eval]    - optional, allows user to set the DIAMOND E Value. Default = 1e-102.
 
-[--dia_cpu]     - optional, allows user to set how many CPU cores DIAMOND can use. Default = 2.
+[--dia_cpu]     - optional, allows user to set how many CPU cores DIAMOND can use. Default = 1.
 
 [--hmm_eval]    - optional, allows user to set the HMMER E Value. Default = 1e-15.
 
@@ -232,7 +233,7 @@ information. Otherwise, the AuxillaryFile may be left blank.
 
 [--eCAMI_k_mer] -optional, allows user to set peptide length for prediction. Default=8.
 
-[--eCAMI_jobs] -optional, number of jobs for prediction. Default=8.
+[--eCAMI_jobs] -optional, number of jobs for prediction. Default=1.
 
 [--eCAMI_important_k_mer_number] -optional, Minimum number of n_mer for prediction. Default=5.
 
@@ -242,13 +243,9 @@ information. Otherwise, the AuxillaryFile may be left blank.
 
 [--tf_cov]     - optional, allows user to set tf.hmm HMMER Coverage val. Default = 0.35.
 
-[--tf_cpu]     - optional, allows user to tf.hmm Number of CPU cores that HMMER is allowed to use. Default = 1.
-
 [--stp_eval]     - optional, allows user to set stp.hmm HMMER E Value. Default = 1e-4.
 
-[--tf_cov]     - optional, allows user to set stp.hmm HMMER Coverage val. Default = 0.3.
-
-[--tf_cpu]     - optional, allows user to stp.hmm Number of CPU cores that HMMER is allowed to use. Default = 1.
+[--stp_cov]     - optional, allows user to set stp.hmm HMMER Coverage val. Default = 0.3.
 
 [--out_pre]     - optional, allows user to set a prefix for all output files.
 

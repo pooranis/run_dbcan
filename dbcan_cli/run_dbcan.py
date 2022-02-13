@@ -8,7 +8,8 @@
 # Updated by Wei Li created table
 # Updated by Le Huang at NKU
 # Updated by Qiwei Ge in Dr.Yin's Lab at UNL
-# Last updated 10/18/21
+# Updated by Poorani Subramanian in BCBB at NIAID
+# Last updated 12 Feb 2022
 # updated information[Qiwei Ge]: 1. Hotpep has been removed, added eCAMI tool. 2. cgc out reformatting. 3. Fixed issues multiple GT2s.
 # Accepts user input
 # Predicts genes if needed
@@ -50,9 +51,6 @@ def runHmmScan(outPath, hmm_cpu, dbDir, hmm_eval, hmm_cov, db_name):
             ps.append(cmdp)
         cmdoutput = [p.wait() for p in ps]
         printmsg(cmdoutput)
-        # cmd = f"ls {outPath}uniInput.split/*.faa | parallel -j {hmm_cpu} hmmscan --domtblout {outPath}uniInput.split/{{%}}.h.{db_name}.out --noali --cpu 1 -o /dev/null {os.path.join(dbDir, db_name)} {{}} "
-        # printmsg(cmd)
-        # subprocess.run(cmd, shell=True)
         subprocess.run(f"cat {outPath}uniInput.split/*.h.{db_name}.out >{outPath}h{db_name}.out", shell=True)
         [os.remove(splitfile) for splitfile in glob.glob(f"{outPath}uniInput.split/*.h.{db_name}.out")]
     else:
