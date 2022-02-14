@@ -24,7 +24,6 @@ import glob
 import os
 import argparse
 import sys
-sys.path.insert(0, '/home/subramanianp4/git/run_dbcan')
 import shutil
 ## https://stackoverflow.com/questions/8350853/how-to-import-module-when-module-name-has-a-dash-or-hyphen-in-it
 hp = __import__("hmmscan-parser")
