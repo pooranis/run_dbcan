@@ -24,11 +24,13 @@ import glob
 import os
 import argparse
 import sys
+sys.path.insert(0, '/home/subramanianp4/git/run_dbcan')
 import shutil
+## https://stackoverflow.com/questions/8350853/how-to-import-module-when-module-name-has-a-dash-or-hyphen-in-it
+hp = __import__("hmmscan-parser")
 from dbcan.utils import simplify_output, cgc_finder, printmsg
 import dbcan.utils.make_gff as make_gff
 from dbcan.eCAMI import eCAMI_config, eCAMI_main
-
 
 '''
 def some functions
@@ -45,13 +47,14 @@ def runHmmScan(outPath, hmm_cpu, dbDir, hmm_eval, hmm_cov, db_name):
             ps.append(cmdp)
         cmdoutput = [p.wait() for p in ps]
         printmsg(cmdoutput)
+        printmsg(f"doing cat {outPath}h{db_name}.out")
         subprocess.run(f"cat {outPath}uniInput.split/*.h.{db_name}.out >{outPath}h{db_name}.out", shell=True)
         [os.remove(splitfile) for splitfile in glob.glob(f"{outPath}uniInput.split/*.h.{db_name}.out")]
     else:
         hmmer = subprocess.run(['hmmscan', '--domtblout', '%sh%s.{db_name}.out' % (outPath, db_name), '--cpu', str(hmm_cpu), '-o', '/dev/null', '%s%s.hmm' % (dbDir,db_name), '%suniInput' % outPath])
-    call('hmmscan-parser.py %sh%s.out %s %s > %s%s.out'%(outPath, db_name, hmm_eval, hmm_cov, outPath, db_name), shell=True)
-    if os.path.exists('%sh%s.out' % (outPath, db_name)):
-        call(['rm', '%sh%s.out' % (outPath, db_name)])
+    hp.hmmscan_parse(f"{outPath}h{db_name}.out", float(hmm_eval), float(hmm_cov), outputFile=f"{outPath}{db_name}.out")
+    if os.path.exists(f'{outPath}h{db_name}.out'):
+        os.remove(f'{outPath}h{db_name}.out')
 
 
 def cli_main():
@@ -91,7 +94,7 @@ def cli_main():
     parser.add_argument('--gram', '-g', choices=["p","n","all"], default="all", help="Choose gram+(p) or gram-(n) for proteome/prokaryote nucleotide, which are params of SignalP, only if user use signalP")
     # output
     parser.add_argument('--out_pre', default="", help='Output files prefix')
-    parser.add_argument('--out_dir', default="output", help='Output directory (default: %(default)s)')
+    parser.add_argument('--out_dir', default="output", help='Output directory - full path works best (default: %(default)s)')
     args = parser.parse_args()
 
     ####
@@ -124,18 +127,15 @@ def cli_main():
             auxFile = '%sprodigal.gff'%outPath
 
     if not os.path.isdir(dbDir):
-        printmsg(dbDir , "ERROR: The database directory does not exist")
-        exit()
+        sys.exit(f"ERROR: The database directory {dbDir} does not exist")
 
     if not os.path.isfile(os.path.join(dbDir,'CAZy.dmnd')):
-        printmsg("ERROR: No CAZy DIAMOND database found. \
+        sys.exit("ERROR: No CAZy DIAMOND database found. \
         Please make sure that your CAZy DIAMOND databased is named 'CAZy.dmnd' and is located in your database directory")
-        exit()
 
     if not os.path.isfile(os.path.join(dbDir, args.dbCANFile)):
-        printmsg("ERROR: No dbCAN HMM database found. \
-        Please make sure that your dbCAN HMM database is named 'dbCAN-HMMdb-V8.txt' or the newest one, has been through hmmpress, and is located in your database directory")
-        exit()
+        sys.exit(f"ERROR: No dbCAN HMM database found. \
+        Please make sure that your dbCAN HMM database is named {args.dbCANFile} or the newest one, has been through hmmpress, and is located in your database directory {dbDir}")
 
     if not os.path.isdir(outDir):
         call(['mkdir', outDir])
@@ -144,11 +144,9 @@ def cli_main():
         if len(auxFile) > 0:
             printmsg(auxFile)
             if not os.path.isfile(auxFile):
-                    printmsg("ERROR: It seems that the auxillary filename that you provided does not exist, or is not a file")
-                    exit()
+                    sys.exit(f"ERROR: It seems that the auxillary filename {auxFile} that you provided does not exist, or is not a file")
         else:
-            printmsg("ERROR: Please provide an auxillary input file with the position of each gene. This file can either be in BED or GFF format")
-            exit()
+            sys.exit("ERROR: Please provide an auxillary input file with the position of each gene. This file can either be in BED or GFF format")
     tools = [True, True, True] #DIAMOND, HMMER, eCAMI
     args.tools = args.tools or ['all'] #default
     if 'all' not in args.tools:
@@ -165,9 +163,9 @@ def cli_main():
     #########################
     # Begin Gene Prediction Tools
     if inputType == 'prok':
-        call(['prodigal', '-i', inputFile, '-a', '%suniInput'%outPath, '-o', '%sprodigal.gff'%outPath, '-f', 'gff', '-q'])
+        subprocess.run(['prodigal', '-i', inputFile, '-a', '%suniInput'%outPath, '-o', '%sprodigal.gff'%outPath, '-f', 'gff', '-q'], check=True)
     if inputType == 'meta':
-        call(['prodigal', '-i', inputFile, '-a', '%suniInput'%outPath, '-o', '%sprodigal.gff'%outPath, '-f', 'gff', '-p', 'meta','-q'])
+        subprocess.run(['prodigal', '-i', inputFile, '-a', '%suniInput'%outPath, '-o', '%sprodigal.gff'%outPath, '-f', 'gff', '-p', 'meta','-q'], check=True)
     #Proteome
     if inputType == 'protein':
         subprocess.run(['cp', inputFile, '%suniInput'%outPath], check=True)
@@ -178,7 +176,7 @@ def cli_main():
         if os.path.isdir(f"{outPath}uniInput.split"):
             printmsg(f"WARNING: overwriting {outPath}uniInput.split")
             shutil.rmtree(f"{outPath}uniInput.split")
-        os.system(f"seqkit split2 --force -p {args.hmm_cpu} {outPath}uniInput ")
+        subprocess.run(f"seqkit split2 --force -p {args.hmm_cpu} {outPath}uniInput ", shell=True, check=True)
         [os.rename(splitfile, splitfile + ".faa") for splitfile in glob.glob(f"{outPath}uniInput.split/*uniInput*")]
 
 
@@ -206,29 +204,26 @@ def cli_main():
 
     if tools[1]:
         printmsg("***************************2. HMMER start*************************************************\n\n", begin="\n\n")
-        if (args.hmm_cpu > 1):
-            runHmmScan(outPath, args.hmm_cpu, dbDir, args.hmm_eval, args.hmm_cov, args.dbCANFile)
-            os.rename(f"{outPath}{args.dbCANFile}.out", f"{outPath}hmmer.out")
-        else:
-            os.system(f"hmmscan --domtblout {outPath}h.out --noali --cpu {args.hmm_cpu} -o /dev/null {os.path.join(dbDir, args.dbCANFile)} {outPath}uniInput ")
-            call(f"hmmscan-parser.py {outPath}h.out {str(args.hmm_eval)} {str(args.hmm_cov)} > {outPath}hmmer.out ", shell=True)
+
+        runHmmScan(outPath, args.hmm_cpu, dbDir, args.hmm_eval, args.hmm_cov, args.dbCANFile)
+        os.rename(f"{outPath}{args.dbCANFile}.out", f"{outPath}hmmer.out")
+
         printmsg("***************************2. HMMER end***************************************************\n\n", begin="\n\n")
+
         with open(f"{outPath}hmmer.out", "r+") as f:
             text = f.read()
-            f.close()
-            call(['rm', f"{outPath}hmmer.out"])
-            text = text.split('\n')
-            if '' in text:
-                text.remove('')
+        os.remove(f"{outPath}hmmer.out")
+        text = text.split('\n')
+        if '' in text:
+            text.remove('')
+        with open(f"{outPath}hmmer.out", 'a') as f:
             for i in range(len(text)):
                 if 'GT2_' in text[i]:
                     profile = text[i].split('\t')[0].split('.')[0]
                     text[i] = text[i].replace(profile,'GT2')
-                with open(f"{outPath}hmmer.out", 'a') as f:
                     f.write(text[i]+'\n')
-                    f.close()
         if os.path.exists(f"{outPath}h.out"):
-            call(['rm', f"{outPath}h.out"])
+            os.remove(f"{outPath}h.out")
 
     if tools[2]:
         printmsg("***************************3. eCAMI start***************************************************\n\n", begin="\n\n")
@@ -306,17 +301,17 @@ def cli_main():
 
         (tf_genes, tp_genes, stp_genes) = make_gff.get_cgc_genes(outDir, prefix)
         # # End TF and TP prediction
-    ##########################
-    # Begine CAZyme Extraction
+        ##########################
+        # Begine CAZyme Extraction
 
         try:
             cazyme_genes = make_gff.get_cazyme_genes(outDir, prefix)
         except:
-        cazyme_genes = {}
+            cazyme_genes = {}
         cazyme = set(list(cazyme_genes.keys()))
-    # End CAZyme Extraction
-    ######################
-    # Begin GFF preperation
+        # End CAZyme Extraction
+        ######################
+        # Begin GFF preperation
 
         if inputType == "prok" or inputType == "meta":   #use Prodigal GFF output
             with open(outDir+prefix+'prodigal.gff') as f:
