@@ -18,17 +18,15 @@
 # Creats an overview table using output files from core
 # tools from Hotpep.out,hmmer.out and diamond.out
 ##########################################################
-from subprocess import Popen, call, check_output
 import subprocess
 import glob
 import os
 import argparse
 import sys
 import shutil
-## https://stackoverflow.com/questions/8350853/how-to-import-module-when-module-name-has-a-dash-or-hyphen-in-it
-hp = __import__("hmmscan-parser")
 from dbcan.utils import simplify_output, cgc_finder, printmsg
-import dbcan.utils.make_gff as make_gff
+from .hmmscan_parser import hmmscan_parse
+import .make_gff
 from dbcan.eCAMI import eCAMI_config, eCAMI_main
 
 '''
@@ -50,8 +48,8 @@ def runHmmScan(outPath, hmm_cpu, dbDir, hmm_eval, hmm_cov, db_name):
         subprocess.run(f"cat {outPath}uniInput.split/*.h.{db_name}.out >{outPath}h{db_name}.out", shell=True)
         [os.remove(splitfile) for splitfile in glob.glob(f"{outPath}uniInput.split/*.h.{db_name}.out")]
     else:
-        hmmer = subprocess.run(['hmmscan', '--domtblout', '%sh%s.{db_name}.out' % (outPath, db_name), '--cpu', str(hmm_cpu), '-o', '/dev/null', '%s%s.hmm' % (dbDir,db_name), '%suniInput' % outPath])
-    hp.hmmscan_parse(f"{outPath}h{db_name}.out", float(hmm_eval), float(hmm_cov), outputFile=f"{outPath}{db_name}.out")
+        subprocess.run(['hmmscan', '--domtblout', '%sh%s.{db_name}.out' % (outPath, db_name), '--cpu', str(hmm_cpu), '-o', '/dev/null', '%s%s.hmm' % (dbDir,db_name), '%suniInput' % outPath])
+    hmmscan_parse(f"{outPath}h{db_name}.out", float(hmm_eval), float(hmm_cov), outputFile=f"{outPath}{db_name}.out")
     if os.path.exists(f'{outPath}h{db_name}.out'):
         os.remove(f'{outPath}h{db_name}.out')
 
@@ -137,7 +135,7 @@ def cli_main():
         Please make sure that your dbCAN HMM database is named {args.dbCANFile} or the newest one, has been through hmmpress, and is located in your database directory {dbDir}")
 
     if not os.path.isdir(outDir):
-        call(['mkdir', outDir])
+        subprocess.call(['mkdir', outDir])
 
     if find_clusters and inputType == "protein":
         if len(auxFile) > 0:
@@ -185,9 +183,9 @@ def cli_main():
     if args.use_signalP:
         printmsg("***************************0. SIGNALP start*************************************************\n\n", begin="\n\n")
         if args.gram == "p" or args.gram=="all":
-            signalpos = Popen('signalp -t gram+ %suniInput > %ssignalp.pos' % (outPath, outPath), shell=True)
+            signalpos = subprocess.Popen('signalp -t gram+ %suniInput > %ssignalp.pos' % (outPath, outPath), shell=True)
         if args.gram == "n" or args.gram == "all":
-            signalpneg = Popen('signalp -t gram- %suniInput > %ssignalp.neg' % (outPath, outPath), shell=True)
+            signalpneg = subprocess.Popen('signalp -t gram- %suniInput > %ssignalp.neg' % (outPath, outPath), shell=True)
 
     # End SignalP
     #######################
@@ -251,7 +249,7 @@ def cli_main():
                     if count % 2 == 0:
                         more_information = line.split(">")
                         out.write(more_information[1])
-        call(['mv', outPath+'temp', outPath+'eCAMI.out'])
+        subprocess.call(['mv', outPath+'temp', outPath+'eCAMI.out'])
 
     if tools[1]:
         with open(outDir+prefix+'hmmer.out') as f:
@@ -259,7 +257,7 @@ def cli_main():
                 out.write('HMM Profile\tProfile Length\tGene ID\tGene Length\tE Value\tProfile Start\tProfile End\tGene Start\tGene End\tCoverage\n')
                 for line in f:
                     out.write(line)
-        call(['mv', outDir+prefix+'temp', outDir+prefix+'hmmer.out'])
+        subprocess.call(['mv', outDir+prefix+'temp', outDir+prefix+'hmmer.out'])
 
     if tools[0]:
         with open(outDir+prefix+'diamond.out') as f:
@@ -267,7 +265,7 @@ def cli_main():
                 out.write('Gene ID\tCAZy ID\t% Identical\tLength\tMismatches\tGap Open\tGene Start\tGene End\tCAZy Start\tCAZy End\tE Value\tBit Score\n')
                 for line in f:
                     out.write(line)
-        call(['mv', outDir+prefix+'temp', outDir+prefix+'diamond.out'])
+        subprocess.call(['mv', outDir+prefix+'temp', outDir+prefix+'diamond.out'])
 
     # End Adding Column Headers
     ########################
@@ -289,9 +287,6 @@ def cli_main():
         stp hmmer
         '''
         runHmmScan(outPath, args.hmm_cpu, dbDir, str(args.stp_eval), str(args.stp_cov), "stp")
-
-        if os.path.exists(f"{outPath}uniInput.split"):
-            shutil.rmtree(f"{outPath}uniInput.split", ignore_errors=True)
 
         '''
         tp diamond
@@ -387,6 +382,11 @@ def cli_main():
         # End CGCFinder call
         # End CGCFinder
         ####################
+
+    ## cleanup split input files if they exist as hmmer will not be run after this
+    if os.path.exists(f"{outPath}uniInput.split"):
+        shutil.rmtree(f"{outPath}uniInput.split", ignore_errors=True)
+
     # Begin SignalP combination
     if args.use_signalP:
         printmsg("Waiting on signalP")
@@ -402,7 +402,7 @@ def cli_main():
                             row = [x for x in row if x != '']
                             if row[9] == 'Y':
                                 out.write(line)
-                call(['rm', outDir+prefix+'signalp.pos'])
+                subprocess.call(['rm', outDir+prefix+'signalp.pos'])
             if args.gram == "all" or args.gram == "n":
                 signalpneg.wait()
                 printmsg("SignalP neg complete")
@@ -413,9 +413,9 @@ def cli_main():
                             row = [x for x in row if x != '']
                             if row[9] == 'Y':
                                 out.write(line)
-                call(['rm', outDir+prefix+'signalp.neg'])
-        call('sort -u '+outDir+prefix+'temp > '+outDir+prefix+'signalp.out', shell=True)
-        call(['rm', outDir+prefix+'temp'])
+                subprocess.call(['rm', outDir+prefix+'signalp.neg'])
+        subprocess.call('sort -u '+outDir+prefix+'temp > '+outDir+prefix+'signalp.out', shell=True)
+        subprocess.call(['rm', outDir+prefix+'temp'])
 
     # End SignalP combination
     #######################

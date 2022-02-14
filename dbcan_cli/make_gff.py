@@ -1,24 +1,20 @@
 #!/usr/bin/env python3
+"""
+Decorates input gff file with annotations from run_dbcan.
+For usage::
+
+    make_gff.py --help
+    
+"""
+
 
 import os
-import sys
 from importlib.metadata import version
 import argparse
 import errno
-import datetime
+from dbcan.utils import printmsg
 
 CONST_SOURCE = "run_dbcan_"+version('dbcan')
-
-def printmsg(*args, **kwargs):
-    """wrapper for print which prepends datetime and prints to STDERR, flushing immediately.
-
-    - begin: extra argument for adding string (like newlines) before printing line.
-
-    """
-    begin = kwargs.pop("begin", None)
-    if begin is not None:
-        print(begin, **kwargs, file=sys.stderr, flush=True)
-    print("[", datetime.datetime.now(), "]", *args, **kwargs, file=sys.stderr, flush=True)
 
 def write_gff(auxFile, outputgff, source = CONST_SOURCE,
              cazyme_genes = None, tf_genes = None, tp_genes = None, stp_genes = None):
@@ -81,7 +77,20 @@ def write_gff(auxFile, outputgff, source = CONST_SOURCE,
 
 
 def get_cgc_genes(out_dir, out_pre):
-    """get genes from CGC finder step output"""
+    """get genes from CGC finder step output
+
+    Args:
+        out_dir (str): directory containing output of CGC finder
+        out_pre (str): prefix of filenames (can be '')
+    
+    Returns:
+        tuple of 3 dictionaries mapping from sequence IDs to output of search with
+        particular DB annotation info.
+        In order:
+        tf_genes (dict): tf-1 and tf-2 hmm dbs
+        tp_genes (dict): (sic) tcdb diamond db
+        stp_genes (dict): stp hmm db
+    """
     outPath = os.path.join(out_dir, out_pre)
     tf_genes = {}
     tp_genes = {}
@@ -197,10 +206,11 @@ def get_cazyme_genes(out_dir, out_prefix):
 def make_gff(input_gff, output_gff, in_dir, in_prefix, cgc_genes=False, source=CONST_SOURCE):
     """make gff file
 
-    - in_dir: Input directory containing result of run_dbcan
-    - in_prefix: Input files prefix from result of run_dbcan
-    - cgc_genes:bool: Use result of CGC Finder step.
-    - other fields see write_gff
+    Args:
+        in_dir: Input directory containing result of run_dbcan
+        in_prefix: Input files prefix from result of run_dbcan
+        cgc_genes:bool: Use result of CGC Finder step.
+        other fields see :func:`write_gff`
     """
     cazyme_genes = get_cazyme_genes(in_dir, in_prefix)
     (tf_genes, tp_genes, stp_genes) = [None, None, None]
