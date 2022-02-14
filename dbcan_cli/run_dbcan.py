@@ -25,20 +25,14 @@ import os
 import argparse
 import sys
 import shutil
-import datetime
-from dbcan.utils import simplify_output, cgc_finder
+from dbcan.utils import simplify_output, cgc_finder, printmsg
+import dbcan.utils.make_gff as make_gff
 from dbcan.eCAMI import eCAMI_config, eCAMI_main
 
 
 '''
 def some functions
 '''
-def printmsg(*args, **kwargs):
-    begin = kwargs.pop("begin", None)
-    if begin is not None:
-        print(begin, **kwargs, file=sys.stderr, flush=True)
-    print("[", datetime.datetime.now(), "]", *args, **kwargs, file=sys.stderr, flush=True)
-
 
 def runHmmScan(outPath, hmm_cpu, dbDir, hmm_eval, hmm_cov, db_name):
     if (hmm_cpu > 1):
@@ -310,103 +304,16 @@ def cli_main():
         '''
         call(['diamond', 'blastp', '-d', dbDir+'tcdb.dmnd', '-e', '1e-10', '-q', '%suniInput' % outPath, '-k', '1', '-p', '1', '-o', outPath+'tp.out', '-f', '6'])
 
-
-        tp = set()
-        tf = set()
-        stp = set()
-
-        tp_genes = {}
-        tf_genes = {}
-        stp_genes = {}
-
-        with open("%stf-1.out" % outPath) as f:
-            for line in f:
-                row = line.rstrip().split('\t')
-                tf.add(row[2])
-                row[0] = "DBD-Pfam|" + row[0]
-                if not row[2] in tf_genes:
-                    tf_genes[row[2]] = row[0]
-                else:
-                    tf_genes[row[2]] += ',' + row[0]
-
-        with open("%stf-2.out" % outPath) as f:
-            for line in f:
-                row = line.rstrip().split('\t')
-                tf.add(row[2])
-                row[0] = "DBD-SUPERFAMILY|" + row[0]
-                if not row[2] in tf_genes:
-                    tf_genes[row[2]] = row[0]
-                else:
-                    tf_genes[row[2]] += ',' + row[0]
-
-        with open(outDir+prefix+'tp.out') as f:
-            for line in f:
-                row = line.rstrip().split('\t')
-                tp.add(row[0])
-                if not row[0] in tp_genes:
-                    tp_genes[row[0]] = row[1]
-                else:
-                    tp_genes[row[0]] += ','+row[1]
-
-        with open("%sstp.out" % outPath) as f:
-            for line in f:
-                row = line.rstrip().split('\t')
-                stp.add(row[2])
-                row[0] = "STP|" + row[0]
-                if not row[2] in stp_genes:
-                    stp_genes[row[2]] = row[0]
-                else:
-                    stp_genes[row[2]] += ',' + row[0]
-    # End TF and TP prediction
+        (tf_genes, tp_genes, stp_genes) = make_gff.get_cgc_genes(outDir, prefix)
+        # # End TF and TP prediction
     ##########################
     # Begine CAZyme Extraction
-        cazyme_genes = {}
-        dia = set()
-        # hot = set()
-        hmm = set()
-        eca = set()
-        if tools[0]:
-            with open(outDir+prefix+'diamond.out') as f:
-                next(f)
-                for line in f:
-                    row = line.rstrip().split('\t')
-                    dia.add(row[0])
-                    if row[0] not in cazyme_genes:
-                        cazyme_genes[row[0]] = set()
-                    cazyme_genes[row[0]].update(set(row[1].strip("|").split('|')[1:]))
-        if tools[1]:
-            with open(outDir+prefix+'hmmer.out') as f:
-                next(f)
-                for line in f:
-                    row = line.rstrip().split('\t')
-                    hmm.add(row[2])
-                    if row[2] not in cazyme_genes:
-                        cazyme_genes[row[2]] = set()
-                    cazyme_genes[row[2]].add(row[0].split('.hmm')[0])
-        if tools[2]:
-            with open(outDir+prefix+'eCAMI.out') as f:
-                next(f)
-                for line in f:
-                    row_ori = line.rstrip().split('\t')
-                    if ' ' in row_ori[0]:
-                        fams_ID = row_ori[0].split(' ')[0]
-                    else:
-                        fams_ID = row_ori[0]
-                    eca.add(fams_ID)
-                    if fams_ID not in cazyme_genes:
-                        cazyme_genes[fams_ID] = set()
-                    cazyme_genes[fams_ID].add(row_ori[1].split(':')[0])
 
-        if tools.count(True) > 1:
-            temp1 = hmm.intersection(eca)
-            # print(hmm, 'This intersection  hmm')
-            temp2 = hmm.intersection(dia)
-            # print(dia, 'This intersection  dia')
-            temp3 = dia.intersection(eca)
-            # print(eca, 'This intersection  eca')
-            cazyme = temp1.union(temp2, temp3)
-        else:
-            cazyme = hmm.union(dia, eca)
+        try:
+            cazyme_genes = make_gff.get_cazyme_genes(outDir, prefix)
+        except:
+        cazyme_genes = {}
+        cazyme = set(list(cazyme_genes.keys()))
     # End CAZyme Extraction
     ######################
     # Begin GFF preperation
@@ -423,13 +330,13 @@ def cli_main():
                             if gene in cazyme:
                                 row[2] = "CAZyme"
                                 row[8] = "DB="+'|'.join(cazyme_genes[gene])
-                            elif gene in tf:
+                            elif gene in tf_genes:
                                 row[2] = "TF"
                                 row[8] = "DB="+tf_genes[gene]
-                            elif gene in tp:
+                            elif gene in tp_genes:
                                 row[2] = "TC"
                                 row[8] = "DB="+tp_genes[gene]
-                            elif gene in stp:
+                            elif gene in stp_genes:
                                 row[2] = "STP"
                                 row[8] = "DB="+stp_genes[gene]
                             row[8] += ";ID="+gene
@@ -443,41 +350,9 @@ def cli_main():
                             gff = True
                             break
             if gff:  #user file was in GFF format
-                with open(auxFile) as f:
-                    with open(outDir+prefix+'cgc.gff', 'w') as out:
-                        for line in f:
-                            if not line.startswith("#"):
-                                row = line.rstrip().split('\t')
-                                if row[2] == "CDS":
-                                    note = row[8].strip().rstrip(";").split(";")
-                                    gene = ""
-                                    notes = {}
-                                    for x in note:
-                                        temp = x.split('=')
-                                        notes[temp[0]] = temp[1]
-                                    if "Name" in notes:
-                                        gene = notes["Name"]
-                                    elif "ID" in notes:
-                                        gene = notes["ID"]
-                                    else:
-                                        continue
-
-                                    if gene in cazyme:
-                                        row[2] = "CAZyme"
-                                        row[8] = "DB="+'|'.join(cazyme_genes[gene])
-                                    elif gene in tf:
-                                        row[2] = "TF"
-                                        row[8] = "DB="+tf_genes[gene]
-                                    elif gene in tp:
-                                        row[2] = "TC"
-                                        row[8] = "DB="+tp_genes[gene]
-                                    elif gene in stp:
-                                        row[2] = "STP"
-                                        row[8] = "DB=" + stp_genes[gene]
-                                    else:
-                                        row[8] = ""
-                                    row[8] += ";ID="+gene
-                                    out.write('\t'.join(row)+'\n')
+                make_gff.write_gff(auxFile = auxFile, outputgff = outDir+prefix+'cgc.gff',
+                                   cazyme_genes = cazyme_genes, tf_genes = tf_genes,
+                                   tp_genes = tp_genes, stp_genes = stp_genes)
             else:  #user file was in BED format
                 with open(auxFile) as f:
                     with open(outDir+prefix+'cgc.gff', 'w') as out:
@@ -490,13 +365,13 @@ def cli_main():
                             if gene in cazyme:
                                 outrow[2] = 'CAZyme'
                                 outrow[8] = "DB="+'|'.join(cazyme_genes[gene])
-                            elif gene in tf:
+                            elif gene in tf_genes:
                                 outrow[2] = 'TF'
                                 outrow[8] =  "DB="+tf_genes[gene]
-                            elif gene in tp:
+                            elif gene in tp_genes:
                                 outrow[2] = 'TC'
                                 outrow[8] = "DB="+tp_genes[gene]
-                            elif gene in stp:
+                            elif gene in stp_genes:
                                 outrow[2] = 'STP'
                                 outrow[8] = "DB=" + stp_genes[gene]
                             else:
