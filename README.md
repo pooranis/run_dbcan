@@ -77,7 +77,7 @@ conda activate run_dbcan
 ```
 pip install dbcan==3.0.1
 ## for this fork:
-pip install git:https://github.com/pooranis/run_dbcan
+pip install git+https://github.com/pooranis/run_dbcan
 ```
 
 
