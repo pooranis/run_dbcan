@@ -23,6 +23,7 @@
 from subprocess import run
 import sys
 import os
+import tempfile
 
 def hmmscan_parse(inputFile, eval, coverage, outputFile=None):
     """
@@ -32,24 +33,26 @@ def hmmscan_parse(inputFile, eval, coverage, outputFile=None):
         coverage (float): coverage threshold in (0,1]
         outputFile (filename): output filename, if None, will use STDOUT
     """
-    tmpfile = "temp." + str(os.getpid())
 
-    run("cat "+inputFile+"  | grep -v '^#' | awk '{print $1,$3,$4,$6,$13,$16,$17,$18,$19}' | sed 's/ /\t/g' | sort -k 3,3 -k 8n -k 9n | perl -e 'while(<>){chomp;@a=split;next if $a[-1]==$a[-2];push(@{$b{$a[2]}},$_);}foreach(sort keys %b){@a=@{$b{$_}};for($i=0;$i<$#a;$i++){@b=split(/\t/,$a[$i]);@c=split(/\t/,$a[$i+1]);$len1=$b[-1]-$b[-2];$len2=$c[-1]-$c[-2];$len3=$b[-1]-$c[-2];if($len3>0 and ($len3/$len1>0.5 or $len3/$len2>0.5)){if($b[4]<$c[4]){splice(@a,$i+1,1);}else{splice(@a,$i,1);}$i=$i-1;}}foreach(@a){print $_.\"\n\";}}' > " + tmpfile, shell=True)
+    with tempfile.TemporaryDirectory() as tempdir:
+        tmpfile = os.path.join(tempdir, "temp." + str(os.getpid()))
+        print("making temporary file", tmpfile, file=sys.stderr, flush=True)
 
-    if outputFile:
-        outf = open(outputFile, 'w')
-    else:
-        outf = sys.stdout
+        run("cat "+inputFile+"  | grep -v '^#' | awk '{print $1,$3,$4,$6,$13,$16,$17,$18,$19}' | sed 's/ /\t/g' | sort -k 3,3 -k 8n -k 9n | perl -e 'while(<>){chomp;@a=split;next if $a[-1]==$a[-2];push(@{$b{$a[2]}},$_);}foreach(sort keys %b){@a=@{$b{$_}};for($i=0;$i<$#a;$i++){@b=split(/\t/,$a[$i]);@c=split(/\t/,$a[$i+1]);$len1=$b[-1]-$b[-2];$len2=$c[-1]-$c[-2];$len3=$b[-1]-$c[-2];if($len3>0 and ($len3/$len1>0.5 or $len3/$len2>0.5)){if($b[4]<$c[4]){splice(@a,$i+1,1);}else{splice(@a,$i,1);}$i=$i-1;}}foreach(@a){print $_.\"\n\";}}' > " + tmpfile, shell=True)
+
+        if outputFile:
+            outf = open(outputFile, 'w')
+        else:
+            outf = sys.stdout
 
 
-    with open(tmpfile) as f:
-        for line in f:
-            row = line.rstrip().split('\t')
-            row.append(float(int(row[6])-int(row[5]))/int(row[1]))
-            if float(row[4]) <= eval and float(row[-1]) >= coverage:
-                print('\t'.join([str(x) for x in row]), file=outf)
+        with open(tmpfile) as f:
+            for line in f:
+                row = line.rstrip().split('\t')
+                row.append(float(int(row[6])-int(row[5]))/int(row[1]))
+                if float(row[4]) <= eval and float(row[-1]) >= coverage:
+                    print('\t'.join([str(x) for x in row]), file=outf)
 
-    os.remove(tmpfile)
     if outputFile:
         outf.close()
 
