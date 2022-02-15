@@ -26,7 +26,7 @@ import sys
 import shutil
 from dbcan.utils import simplify_output, cgc_finder, printmsg
 from .hmmscan_parser import hmmscan_parse
-import .decorate_gff
+import decorate_gff
 from dbcan.eCAMI import eCAMI_config, eCAMI_main
 
 '''
@@ -234,7 +234,6 @@ def cli_main():
         )
         eCAMI_main(ecami_config)
         # os.system('python eCAMI/prediction.py -input %suniInput -kmer_db eCAMI/%s -output %seCAMI.out -k_mer %s -jobs %s -important_k_mer_number %s -beta %s' % (outPath, str(args.eCAMI_kmer_db), outPath, str(args.eCAMI_k_mer), str(args.eCAMI_jobs), str(args.eCAMI_important_k_mer_number),str(args.eCAMI_beta)))
-
         printmsg("***************************3. eCAMI end***************************************************\n\n", begin="\n\n")
     # End Core Tools
     ########################
