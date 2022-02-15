@@ -26,7 +26,7 @@ import sys
 import shutil
 from dbcan.utils import simplify_output, cgc_finder, printmsg
 from .hmmscan_parser import hmmscan_parse
-import .make_gff
+import .decorate_gff
 from dbcan.eCAMI import eCAMI_config, eCAMI_main
 
 '''
@@ -294,7 +294,7 @@ def cli_main():
         call(['diamond', 'blastp', '-d', dbDir+'tcdb.dmnd', '-e', '1e-10', '-q', '%suniInput' % outPath, '-k', '1', '-p', '1', '-o', outPath+'tp.out', '-f', '6'])
 
         try:
-            (tf_genes, tp_genes, stp_genes) = make_gff.get_cgc_genes(outDir, prefix)
+            (tf_genes, tp_genes, stp_genes) = decorate_gff.get_cgc_genes(outDir, prefix)
         except FileNotFoundError as e:
             printmsg(e)
             (tf_genes, tp_genes, stp_genes) = [{}, {}, {}]
@@ -303,7 +303,7 @@ def cli_main():
         # Begine CAZyme Extraction
 
         try:
-            cazyme_genes = make_gff.get_cazyme_genes(outDir, prefix)
+            cazyme_genes = decorate_gff.get_cazyme_genes(outDir, prefix)
         except FileNotFoundError as e:
             printmsg(e)
             cazyme_genes = {}
@@ -344,7 +344,7 @@ def cli_main():
                             gff = True
                             break
             if gff:  #user file was in GFF format
-                make_gff.write_gff(auxFile = auxFile, outputgff = outDir+prefix+'cgc.gff',
+                decorate_gff.write_gff(auxFile = auxFile, outputgff = outDir+prefix+'cgc.gff',
                                    cazyme_genes = cazyme_genes, tf_genes = tf_genes,
                                    tp_genes = tp_genes, stp_genes = stp_genes)
             else:  #user file was in BED format

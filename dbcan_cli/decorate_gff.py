@@ -226,7 +226,7 @@ def make_gff(input_gff, output_gff, in_dir, in_prefix, cgc_genes=False, source=C
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='make gff file from run_dbcan outputs')
+    parser = argparse.ArgumentParser(description='decorate gff file with run_dbcan outputs')
     req = parser.add_argument_group('required arguments')
     req.add_argument('-i', '--input_gff', help='User input GFF file to be decorated/annotated.', required=True)
     req.add_argument('-o', '--output_gff', help='Output GFF file.', required=True)
