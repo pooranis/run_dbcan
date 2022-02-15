@@ -96,44 +96,48 @@ def get_cgc_genes(out_dir, out_pre):
     tp_genes = {}
     stp_genes = {}
 
-    with open(f"{outPath}tf-1.out") as f:
-        printmsg(f"getting TF genes from {outPath}tf-1.out")
-        for line in f:
-            row = line.rstrip().split('\t')
-            row[0] = "DBD-Pfam|" + row[0]
-            if not row[2] in tf_genes:
-                tf_genes[row[2]] = row[0]
-            else:
-                tf_genes[row[2]] += ',' + row[0]
+    try:
+        with open(f"{outPath}tf-1.out") as f:
+            printmsg(f"getting TF genes from {outPath}tf-1.out")
+            for line in f:
+                row = line.rstrip().split('\t')
+                row[0] = "DBD-Pfam|" + row[0]
+                if not row[2] in tf_genes:
+                    tf_genes[row[2]] = row[0]
+                else:
+                    tf_genes[row[2]] += ',' + row[0]
 
-    with open(f"{outPath}tf-2.out") as f:
-        printmsg(f"getting TF genes from {outPath}tf-2.out")
-        for line in f:
-            row = line.rstrip().split('\t')
-            row[0] = "DBD-SUPERFAMILY|" + row[0]
-            if not row[2] in tf_genes:
-                tf_genes[row[2]] = row[0]
-            else:
-                tf_genes[row[2]] += ',' + row[0]
+        with open(f"{outPath}tf-2.out") as f:
+            printmsg(f"getting TF genes from {outPath}tf-2.out")
+            for line in f:
+                row = line.rstrip().split('\t')
+                row[0] = "DBD-SUPERFAMILY|" + row[0]
+                if not row[2] in tf_genes:
+                    tf_genes[row[2]] = row[0]
+                else:
+                    tf_genes[row[2]] += ',' + row[0]
 
-    with open(f"{outPath}tp.out") as f:
-        printmsg(f"getting TP/TC genes from {outPath}tp.out")
-        for line in f:
-            row = line.rstrip().split('\t')
-            if not row[0] in tp_genes:
-                tp_genes[row[0]] = row[1]
-            else:
-                tp_genes[row[0]] += ','+row[1]
+        with open(f"{outPath}tp.out") as f:
+            printmsg(f"getting TP/TC genes from {outPath}tp.out")
+            for line in f:
+                row = line.rstrip().split('\t')
+                if not row[0] in tp_genes:
+                    tp_genes[row[0]] = row[1]
+                else:
+                    tp_genes[row[0]] += ','+row[1]
 
-    with open(f"{outPath}stp.out") as f:
-        printmsg(f"getting STP genes from {outPath}stp.out")
-        for line in f:
-            row = line.rstrip().split('\t')
-            row[0] = "STP|" + row[0]
-            if not row[2] in stp_genes:
-                stp_genes[row[2]] = row[0]
-            else:
-                stp_genes[row[2]] += ',' + row[0]
+        with open(f"{outPath}stp.out") as f:
+            printmsg(f"getting STP genes from {outPath}stp.out")
+            for line in f:
+                row = line.rstrip().split('\t')
+                row[0] = "STP|" + row[0]
+                if not row[2] in stp_genes:
+                    stp_genes[row[2]] = row[0]
+                else:
+                    stp_genes[row[2]] += ',' + row[0]
+    except FileNotFoundError as e:
+        e.strerror = "Cannot find output of run_dbcan cgc finder step. " + e.strerror
+        raise e
 
     return(tf_genes, tp_genes, stp_genes)
 
@@ -187,7 +191,7 @@ def get_cazyme_genes(out_dir, out_prefix):
                 cazyme_genes[fams_ID].add(row_ori[1].split(':')[0])
 
     if list(tools.values()).count(True) == 0:
-        raise FileNotFoundError(errno.ENOENT, f"No cazyme outputs ({diamondpath}, {hmmerpath}, or {ecamipath}) of dbcan can be found. GFF file will not be written.")
+        raise FileNotFoundError(errno.ENOENT, f"No cazyme outputs ({diamondpath}, {hmmerpath}, or {ecamipath}) of dbcan can be found.")
 
     if list(tools.values()).count(True) > 1:
         temp1 = hmm.intersection(eca)

@@ -293,14 +293,19 @@ def cli_main():
         '''
         call(['diamond', 'blastp', '-d', dbDir+'tcdb.dmnd', '-e', '1e-10', '-q', '%suniInput' % outPath, '-k', '1', '-p', '1', '-o', outPath+'tp.out', '-f', '6'])
 
-        (tf_genes, tp_genes, stp_genes) = make_gff.get_cgc_genes(outDir, prefix)
+        try:
+            (tf_genes, tp_genes, stp_genes) = make_gff.get_cgc_genes(outDir, prefix)
+        except FileNotFoundError as e:
+            printmsg(e)
+            (tf_genes, tp_genes, stp_genes) = [{}, {}, {}]
         # # End TF and TP prediction
         ##########################
         # Begine CAZyme Extraction
 
         try:
             cazyme_genes = make_gff.get_cazyme_genes(outDir, prefix)
-        except:
+        except FileNotFoundError as e:
+            printmsg(e)
             cazyme_genes = {}
         cazyme = set(list(cazyme_genes.keys()))
         # End CAZyme Extraction
