@@ -7,12 +7,10 @@ Revised on Nov 11, 2021 by Le Huang
 """
 
 import numpy as np
-import sys
 import os
 import datetime
 import re
 #import psutil
-import argparse,sys
 from multiprocessing import Pool
 # add by Le Nov 14, 2021
 
@@ -235,47 +233,29 @@ def get_validation_results(input_fasta_file,database_dir,output_dir,output_file_
     fw.close()
 
 
-
-
-
-
-
-# def arg_parser(args):
-#     '''
-#     Process command-line user arguments and prepare for further directories
-#     '''
-
-#     ####################################
-#     #Folders and files:
-#     parser = argparse.ArgumentParser(description='The input parameters for the identification technology')
-
-#     parser.add_argument('-kmer_db',     default="CAZyme",type=str,        help="Change n_mer directories path for prediction")
-#     parser.add_argument('-output',     default="examples/prediction/output/test_pred_cluster_labels.txt",type=str,        help="file name for prediction results saving")
-#     parser.add_argument('-input',     default="examples/prediction/input/test.faa",type=str,        help="Define the fasta file name")
-#     parser.add_argument('-k_mer',           default=8,         type=int,                 help="Peptide length for prediction")
-#     parser.add_argument('-jobs',            default=8,         type=int,                 help='Number of processor for use for prediction')
-#     parser.add_argument('-important_k_mer_number',        default=5,      type=int,               help="Minimum number of n_mer for prediction")
-#     parser.add_argument('-beta',        default=2,      type=float,               help="Minimum sum of percentage of frequency of n_mer for prediction")
-#     args = parser.parse_args(args)
-#     return (args)
-
+## Constants
+_DB_TYPE_CHOICES = {'CAZyme', 'EC'}
+_DB_TYPE = 'CAZyme'
+_KMER_LEN = 8
+_JOBS = 8
+_IMPORTANT_K_MER_NUMBER = 5
+_BETA = 2.0
 
 class eCAMI_config(object):
     def __init__(
         self,
-        db_type = 'CAZyme',
+        db_type = _DB_TYPE,
         output = 'examples/prediction/output/test_pred_cluster_labels.txt',
         input = 'examples/prediction/input/test.faa',
-        k_mer = 8,
-        jobs = 8,
-        important_k_mer_number = 5,
-        beta = 2.0
+        k_mer = _KMER_LEN,
+        jobs = _JOBS,
+        important_k_mer_number = _IMPORTANT_K_MER_NUMBER,
+        beta = _BETA
     ) -> None:
-        if db_type == 'CAZyme':
-            self.kmer_db = f'{os.path.dirname(__file__)}/CAZyme'
+        if db_type in _DB_TYPE_CHOICES:
+            self.kmer_db = f'{os.path.dirname(__file__)}/{db_type}'
         else:
-            # print(__file__)
-            self.kmer_db = f'{os.path.dirname(__file__)}/EC'
+            raise ValueError(f"eCAMI kmer db_type='{db_type}': ERROR db_type must be one of {_DB_TYPE_CHOICES}")
         # print(self.kmer_db)
         self.output = output
         self.input = input
@@ -308,19 +288,21 @@ def eCAMI_main(args):
     get_validation_results(input_fasta_file,database_dir,output_dir,output_file_name,n_mer,important_n_mer_number,beta,fam_kmer_dict,jobs)
 
     endtime = datetime.datetime.now()
-    print('total time:'+str((endtime - starttime).total_seconds())+'s')
+    print('total time:'+str((endtime - starttime).total_seconds())+'s', flush=True)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='The input parameters for the identification technology')
+    import argparse
+    parser = argparse.ArgumentParser(description='The input parameters for the identification technology',
+                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-kmer_db',     default="CAZyme",type=str,        help="Change n_mer directories path for prediction")
+    parser.add_argument('-kmer_db',     default=_DB_TYPE,      help=f"Change n_mer directories path for prediction. choices: {_DB_TYPE_CHOICES}")
     parser.add_argument('-output',     default="examples/prediction/output/test_pred_cluster_labels.txt",type=str,        help="file name for prediction results saving")
     parser.add_argument('-input',     default="examples/prediction/input/test.faa",type=str,        help="Define the fasta file name")
-    parser.add_argument('-k_mer',           default=8,         type=int,                 help="Peptide length for prediction")
-    parser.add_argument('-jobs',            default=8,         type=int,                 help='Number of processor for use for prediction')
-    parser.add_argument('-important_k_mer_number',        default=5,      type=int,               help="Minimum number of n_mer for prediction")
-    parser.add_argument('-beta',        default=2,      type=float,               help="Minimum sum of percentage of frequency of n_mer for prediction")
+    parser.add_argument('-k_mer',           default=_KMER_LEN,         type=int,                 help="Peptide length for prediction")
+    parser.add_argument('-jobs',            default=_JOBS,         type=int,                 help='Number of processor for use for prediction')
+    parser.add_argument('-important_k_mer_number',        default=_IMPORTANT_K_MER_NUMBER,      type=int,               help="Minimum number of n_mer for prediction")
+    parser.add_argument('-beta',        default=_BETA,      type=float,               help="Minimum sum of percentage of frequency of n_mer for prediction")
     args = parser.parse_args()
     ecami_config = eCAMI_config(
         db_type = args.kmer_db,
