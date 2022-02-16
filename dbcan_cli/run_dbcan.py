@@ -25,8 +25,9 @@ import argparse
 import sys
 import shutil
 from dbcan.utils import simplify_output, cgc_finder, printmsg
-from .hmmscan_parser import hmmscan_parse
-import decorate_gff
+from dbcan_cli.hmmscan_parser import hmmscan_parse
+import dbcan_cli.decorate_gff as decorate_gff
+from dbcan_cli.overview import make_overview
 from dbcan.eCAMI import eCAMI_config, eCAMI_main
 
 '''
@@ -38,7 +39,7 @@ def runHmmScan(outPath, hmm_cpu, dbDir, hmm_eval, hmm_cov, db_name):
         faa = glob.glob(f"{outPath}uniInput.split/*.faa")
         ps = []
         for i in range(len(faa)):
-            cmd = f"hmmscan --domtblout {outPath}uniInput.split/{i}.h.{db_name}.out --noali --cpu 1 -o /dev/null {os.path.join(dbDir, db_name)} {faa[i]}"
+            cmd = f"hmmscan --domtblout {outPath}uniInput.split/{i}.h.{db_name}.out --noali --cpu 1 -o /dev/null {os.path.join(dbDir, db_name)}.hmm {faa[i]}"
             printmsg(cmd)
             cmdp = subprocess.Popen(cmd, shell=True)
             ps.append(cmdp)
@@ -48,7 +49,7 @@ def runHmmScan(outPath, hmm_cpu, dbDir, hmm_eval, hmm_cov, db_name):
         subprocess.run(f"cat {outPath}uniInput.split/*.h.{db_name}.out >{outPath}h{db_name}.out", shell=True)
         [os.remove(splitfile) for splitfile in glob.glob(f"{outPath}uniInput.split/*.h.{db_name}.out")]
     else:
-        subprocess.run(['hmmscan', '--domtblout', '%sh%s.{db_name}.out' % (outPath, db_name), '--cpu', str(hmm_cpu), '-o', '/dev/null', '%s%s.hmm' % (dbDir,db_name), '%suniInput' % outPath])
+        subprocess.run(['hmmscan', '--domtblout', '%sh%s.out' % (outPath, db_name), '--cpu', str(hmm_cpu), '-o', '/dev/null', '%s%s' % (dbDir,db_name), '%suniInput' % outPath])
     hmmscan_parse(f"{outPath}h{db_name}.out", float(hmm_eval), float(hmm_cov), outputFile=f"{outPath}{db_name}.out")
     if os.path.exists(f'{outPath}h{db_name}.out'):
         os.remove(f'{outPath}h{db_name}.out')
@@ -291,7 +292,7 @@ def cli_main():
         '''
         tp diamond
         '''
-        call(['diamond', 'blastp', '-d', dbDir+'tcdb.dmnd', '-e', '1e-10', '-q', '%suniInput' % outPath, '-k', '1', '-p', '1', '-o', outPath+'tp.out', '-f', '6'])
+        subprocess.call(['diamond', 'blastp', '-d', dbDir+'tcdb.dmnd', '-e', '1e-10', '-q', '%suniInput' % outPath, '-k', '1', '-p', '1', '-o', outPath+'tp.out', '-f', '6'])
 
         try:
             (tf_genes, tp_genes, stp_genes) = decorate_gff.get_cgc_genes(outDir, prefix)
@@ -424,147 +425,10 @@ def cli_main():
 
     # End SignalP combination
     #######################
-    #######################
-    # start Overview
-    print ("Preparing overview table from hmmer, eCAMI and diamond output...")
-    workdir= outDir+prefix
-    # a function to remove duplicates from lists while keeping original order
-    def unique(seq):
-        exists = set()
-        return [x for x in seq if not (x in exists or exists.add(x))]
-
-    # check if files exist. if so, read files and get the gene numbers
-    if tools[0]:
-        arr_diamond = open(workdir+"diamond.out").readlines()
-        diamond_genes = [arr_diamond[i].split()[0] for i in range(1, len(arr_diamond))] # or diamond_genes = []
-
-    if tools[1]:
-        arr_hmmer = open(workdir+"hmmer.out").readlines()
-        hmmer_genes = [arr_hmmer[i].split()[2] for i in range(1, len(arr_hmmer))] # or hmmer_genes = []
-
-    if tools[2]:
-        arr_eCAMI = open(workdir+"eCAMI.out").readlines()
-        eCAMI_genes = [arr_eCAMI[i].split()[0] for i in range(1, len(arr_eCAMI))]# or eCAMI_genes = []
-
-    if args.use_signalP and (os.path.exists(workdir + "signalp.out")):
-        arr_sigp = open(workdir+"signalp.out").readlines()
-        sigp_genes = {}
-        for i in range (0,len(arr_sigp)):
-            row = arr_sigp[i].split()
-            sigp_genes[row[0]] = row[4] #previous one is row[2], use Y-score instead from suggestion of Dongyao Li
-
-    ##Catie Ausland edits BEGIN, Le add variable exists or not, remove duplicates from input lists
-    if not tools[0]:
-        diamond_genes =[]
-    if not tools[1]:
-        hmmer_genes   = []
-    if not tools[2]:
-        eCAMI_genes  =[]
-
-    if len(eCAMI_genes) > 0:
-        if (eCAMI_genes[-1] == None):
-            #print('I am in &&&&&&&&&&&&&&&&&&&&&&')
-            eCAMI_genes.pop()
-            eCAMI_genes = unique(eCAMI_genes)
-            if 'hmmer_genes' in locals():
-                hmmer_genes.pop()
-                hmmer_genes = unique(hmmer_genes)
-            if 'diamond_genes' in locals():
-                diamond_genes.pop()
-                diamond_genes = unique(diamond_genes)
-    ## Catie edits END, Le add variable exists or not, remove duplicates from input lists
-
-    # parse input, stroe needed variables
-    if tools[0] and (len(arr_diamond) > 1):
-        diamond_fams = {}
-        for i in range (1,len(arr_diamond)):
-            row = arr_diamond[i].split("\t")
-            fam = row[1].strip("|").split("|")
-            diamond_fams[row[0]] = fam[1:]
-
-    if tools[1] and (len(arr_hmmer) > 1):
-        hmmer_fams = {}
-        for i in range (1, len(arr_hmmer)):
-            row = arr_hmmer[i].split("\t")
-            fam = row[0].split(".")
-            fam = fam[0]+"("+row[7]+"-"+row[8]+")"
-            if(row[2] not in hmmer_fams):
-                hmmer_fams[row[2]] = []
-            hmmer_fams[row[2]].append(fam)
-
-
-    if tools[2] and (len(arr_eCAMI) > 1) :
-        eCAMI_fams = {}
-        for i in range (1,len(arr_eCAMI)):
-            row_ori = arr_eCAMI[i].split("\t")
-            subfam_names = row_ori[2].split('|')
-            fam = row_ori[1].split(':')
-            if ' ' in row_ori[0]:
-                fams_ID = row_ori[0].split(' ')[0]
-            else:
-                fams_ID = row_ori[0]
-
-            diam_name = []
-            for name in subfam_names:
-                if '.' in name:
-                    diam_name.append(name.split(":")[0])
-
-            if(fams_ID not in eCAMI_fams):
-                eCAMI_fams[fams_ID] = {}
-                eCAMI_fams[fams_ID]["fam_name"] = []
-                eCAMI_fams[fams_ID]["ec_num"] = []
-
-            eCAMI_fams[fams_ID]["fam_name"].append(fam[0])
-            eCAMI_fams[fams_ID]["ec_num"] = diam_name
-
-    #overall table
-
-    all_genes = unique(hmmer_genes+eCAMI_genes+diamond_genes)
-
-    with open(workdir+"overview.txt", 'w+') as fp:
-        if args.use_signalP:
-            fp.write("Gene ID\tEC#\tHMMER\teCAMI\tDIAMOND\tSignalp\t#ofTools\n")
-        else:
-            fp.write("Gene ID\tEC#\tHMMER\teCAMI\tDIAMOND\t#ofTools\n")
-        for gene in all_genes:
-            csv=[gene]
-            num_tools = 0
-
-            if tools[2] and arr_eCAMI != None and (gene in eCAMI_genes):
-                if eCAMI_fams[gene]["ec_num"] == []:
-                    csv.append("-")
-                else:
-                    csv.append("|".join(eCAMI_fams[gene]["ec_num"]))
-            else:
-                csv.append("-")
-
-            if tools[1] and arr_hmmer != None and (gene in hmmer_genes):
-                num_tools += 1
-                csv.append("+".join(hmmer_fams[gene]))
-            else:
-                csv.append("-")
-
-            if tools[2] and arr_eCAMI != None and (gene in eCAMI_genes):
-                num_tools += 1
-                csv.append("+".join(eCAMI_fams[gene]["fam_name"]))
-            else:
-                csv.append("-")
-
-            if tools[0] and arr_diamond != None and (gene in diamond_genes):
-                num_tools += 1
-                csv.append("+".join(diamond_fams[gene]))
-            else:
-                csv.append("-")
-            if args.use_signalP:
-                if (gene in sigp_genes):
-                    csv.append("Y(1-"+sigp_genes[gene]+")")
-                else:
-                    csv.append("N")
-            csv.append(str(num_tools))
-            temp = "\t".join(csv) + "\n"
-            fp.write(temp)
-    printmsg("overview table complete. Saved as "+workdir+"overview.txt")
-    # End overview
+    # #######################
+    # # start Overview
+    make_overview(outDir, prefix, tools = dict(zip(['diamond', 'hmmer', 'eCAMI'], tools)), use_signalP = args.use_signalP)
+    # # End overview
 
 
 if __name__ == '__main__':

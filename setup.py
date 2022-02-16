@@ -36,7 +36,8 @@ setup(name='dbcan',
       include_package_data=True,
       scripts=[
           'dbcan_cli/hmmscan_parser.py',
-          'dbcan_cli/decorate_gff.py'
+          'dbcan_cli/decorate_gff.py',
+          'dbcan_cli/overview.py'
       ],
       entry_points={
         "console_scripts":[

@@ -207,19 +207,19 @@ def get_cazyme_genes(out_dir, out_prefix):
     cazyme_genes = {key: cazyme_genes[key] for key in cazyme}
     return(cazyme_genes)
 
-def make_gff(input_gff, output_gff, in_dir, in_prefix, cgc_genes=False, source=CONST_SOURCE):
+def make_gff(input_gff, output_gff, outDir, out_pre, cgc_genes=False, source=CONST_SOURCE):
     """make gff file
 
     Args:
-        in_dir: Input directory containing result of run_dbcan
-        in_prefix: Input files prefix from result of run_dbcan
+        outDir: Directory containing output of run_dbcan
+        out_pre: Files prefix from result of run_dbcan
         cgc_genes:bool: Use result of CGC Finder step.
         other fields see :func:`write_gff`
     """
-    cazyme_genes = get_cazyme_genes(in_dir, in_prefix)
+    cazyme_genes = get_cazyme_genes(outDir, out_pre)
     (tf_genes, tp_genes, stp_genes) = [None, None, None]
     if cgc_genes:
-        (tf_genes, tp_genes, stp_genes) = get_cgc_genes(in_dir, in_prefix)
+        (tf_genes, tp_genes, stp_genes) = get_cgc_genes(outDir, out_pre)
     write_gff(auxFile = input_gff, source = source, outputgff = output_gff,
              cazyme_genes = cazyme_genes, tf_genes = tf_genes, tp_genes = tp_genes, stp_genes = stp_genes)
 
@@ -230,11 +230,11 @@ if __name__ == "__main__":
     req = parser.add_argument_group('required arguments')
     req.add_argument('-i', '--input_gff', help='User input GFF file to be decorated/annotated.', required=True)
     req.add_argument('-o', '--output_gff', help='Output GFF file.', required=True)
-    req.add_argument('-d', '--in_dir', help='Input directory containing result of run_dbcan', required=True)
-    parser.add_argument('-p', '--in_pre', help='Input files prefix from result of run_dbcan', default='')
+    req.add_argument('-d', '--dir', help='Directory containing result of run_dbcan', required=True)
+    parser.add_argument('-p', '--prefix', help='Files prefix from result of run_dbcan', default='')
     parser.add_argument('-c', '--cgc_genes', help='Use result of CGC Finder step.', action='store_true')
     parser.add_argument('-s', '--source', help='Source field for GFF (default: %(default)s).', default=CONST_SOURCE)
     parser._action_groups.reverse()
     args = parser.parse_args()
 
-    make_gff(args.input_gff, args.output_gff, args.in_dir, args.in_pre, cgc_genes = args.cgc_genes, source = args.source)
+    make_gff(args.input_gff, args.output_gff, args.dir, args.prefix, cgc_genes = args.cgc_genes, source = args.source)
