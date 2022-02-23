@@ -90,9 +90,9 @@ cd db \
     && wget http://bcb.unl.edu/dbCAN2/download/CAZyDB.09242021.fa && diamond makedb --in CAZyDB.09242021.fa -d CAZy \
     && wget https://bcb.unl.edu/dbCAN2/download/Databases/V10/dbCAN-HMMdb-V10.txt && mv dbCAN-HMMdb-V10.txt dbCAN.txt && hmmpress dbCAN.txt \
     && wget https://bcb.unl.edu/dbCAN2/download/Databases/V10/tcdb.fa && diamond makedb --in tcdb.fa -d tcdb \
-    && wget -O tf-1 http://bcb.unl.edu/dbCAN2/download/Databases/V10/tf-1.hmm && hmmpress tf-1 && mv tf-1 tf-1.hmm \
-    && wget -O tf-2 http://bcb.unl.edu/dbCAN2/download/Databases/V10/tf-2.hmm && hmmpress tf-2 && mv tf-2 tf-2.hmm \
-    && wget -O stp http://bcb.unl.edu/dbCAN2/download/Databases/V10/stp.hmm && hmmpress stp && mv stp stp.hmm \
+    && wget http://bcb.unl.edu/dbCAN2/download/Databases/V10/tf-1.hmm && hmmpress tf-1.hmm \
+    && wget http://bcb.unl.edu/dbCAN2/download/Databases/V10/tf-2.hmm && hmmpress tf-2.hmm \
+    && wget http://bcb.unl.edu/dbCAN2/download/Databases/V10/stp.hmm && hmmpress stp.hmm \
     && cd ../ && wget http://bcb.unl.edu/dbCAN2/download/Samples/EscheriaColiK12MG1655.fna \
     && wget http://bcb.unl.edu/dbCAN2/download/Samples/EscheriaColiK12MG1655.faa \
     && wget http://bcb.unl.edu/dbCAN2/download/Samples/EscheriaColiK12MG1655.gff
@@ -197,11 +197,11 @@ P.S.: You do not need to download `CGCFinder` and `hmmscan-parser` because they 
 
 [tcdb.fa](http://bcb.unl.edu/dbCAN2/download/Databases/tcdb.fa)--use `diamond makedb --in tcdb.fa -d tcdb`
 
-[tf-1.hmm](http://bcb.unl.edu/dbCAN2/download/Databases/tf-1.hmm)--use `mv tf-1.hmm tf-1 && hmmpress tf-1`
+[tf-1.hmm](http://bcb.unl.edu/dbCAN2/download/Databases/tf-1.hmm)--use `hmmpress tf-1.hmm`
 
-[tf-2.hmm](http://bcb.unl.edu/dbCAN2/download/Databases/tf-2.hmm)--use `mv tf-2.hmm tf-1 && hmmpress tf-2`
+[tf-2.hmm](http://bcb.unl.edu/dbCAN2/download/Databases/tf-2.hmm)--use `hmmpress tf-2.hmm`
 
-[stp.hmm](http://bcb.unl.edu/dbCAN2/download/Databases/stp.hmm)--use `mv stp.hmm stp && hmmpress stp`
+[stp.hmm](http://bcb.unl.edu/dbCAN2/download/Databases/stp.hmm)--use `hmmpress stp.hmm`
 
 
 Params

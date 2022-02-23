@@ -34,8 +34,13 @@ from dbcan.eCAMI import eCAMI_config, eCAMI_main
 def some functions
 '''
 
-def runHmmScan(outPath, hmm_cpu, dbDir, hmm_eval, hmm_cov, db_name):
+def runHmmScan(outPath, hmm_cpu, dbDir, hmm_eval, hmm_cov, db_name, outputFile=None):
+    """run hmmscan with {outPath}uniInput query file against dbDir/db_name
+    if hmm_cpu > 1, uniInput files should already be split into hmm_cpu parts!
+    if outputFile=None, outputFile=f"{outPath}{db_name.replace('.hmm', '')}.out"
+    """
     if (hmm_cpu > 1):
+        printmsg("Using {hmm_cpu} processes for hmmscan.")
         faa = glob.glob(f"{outPath}uniInput.split/*.faa")
         ps = []
         for i in range(len(faa)):
@@ -50,7 +55,8 @@ def runHmmScan(outPath, hmm_cpu, dbDir, hmm_eval, hmm_cov, db_name):
         [os.remove(splitfile) for splitfile in glob.glob(f"{outPath}uniInput.split/*.h.{db_name}.out")]
     else:
         subprocess.run(['hmmscan', '--domtblout', '%sh%s.out' % (outPath, db_name), '--cpu', str(hmm_cpu), '-o', '/dev/null', '%s%s' % (dbDir,db_name), '%suniInput' % outPath])
-    hmmscan_parse(f"{outPath}h{db_name}.out", float(hmm_eval), float(hmm_cov), outputFile=f"{outPath}{db_name}.out")
+    outputFile = outputFile or f"{outPath}{db_name.replace('.hmm', '')}.out"
+    hmmscan_parse(f"{outPath}h{db_name}.out", float(hmm_eval), float(hmm_cov), outputFile=outputFile)
     if os.path.exists(f'{outPath}h{db_name}.out'):
         os.remove(f'{outPath}h{db_name}.out')
 
@@ -168,14 +174,20 @@ def cli_main():
     if inputType == 'protein':
         subprocess.run(['cp', inputFile, '%suniInput'%outPath], check=True)
 
-    ## check for hmm_cpu
+    ## check for hmm_cpu and split files if > 1
     if (tools[1] or find_clusters) and (args.hmm_cpu > 1):
         printmsg("splitting input for hmmscan parallel")
         if os.path.isdir(f"{outPath}uniInput.split"):
             printmsg(f"WARNING: overwriting {outPath}uniInput.split")
             shutil.rmtree(f"{outPath}uniInput.split")
         subprocess.run(f"seqkit split2 --force -p {args.hmm_cpu} {outPath}uniInput ", shell=True, check=True)
-        [os.rename(splitfile, splitfile + ".faa") for splitfile in glob.glob(f"{outPath}uniInput.split/*uniInput*")]
+        fs=glob.glob(f"{outPath}uniInput.split/*uniInput*")
+        [os.rename(splitfile, splitfile + ".faa") for splitfile in fs]
+        ## check number of split files
+        if len(fs) < hmm_cpu:
+            hmm_cpu=len(fs)
+            printmsg(f"WARNING: hmmscan will only use {hmm_cpu} processes as there are only {hmm_cpu} split files, {fs}. (maybe because the number of seqs is < {hmm_cpu})")
+        del fs
 
 
     # End Gene Prediction Tools
@@ -203,8 +215,7 @@ def cli_main():
     if tools[1]:
         printmsg("***************************2. HMMER start*************************************************\n\n", begin="\n\n")
 
-        runHmmScan(outPath, args.hmm_cpu, dbDir, args.hmm_eval, args.hmm_cov, args.dbCANFile)
-        os.rename(f"{outPath}{args.dbCANFile}.out", f"{outPath}hmmer.out")
+        runHmmScan(outPath, args.hmm_cpu, dbDir, args.hmm_eval, args.hmm_cov, args.dbCANFile, outputFile=f"{outPath}hmmer.out")
 
         printmsg("***************************2. HMMER end***************************************************\n\n", begin="\n\n")
 
@@ -282,12 +293,12 @@ def cli_main():
         tf hmmer
         '''
         #call(['diamond', 'blastp', '-d', dbDir+'tf_v1/tf.dmnd', '-e', '1e-10', '-q', '%suniInput' % outPath, '-k', '1', '-p', '1', '-o', outDir+prefix+'tf.out', '-f', '6'])
-        runHmmScan(outPath, args.hmm_cpu, dbDir, str(args.tf_eval), str(args.tf_cov), "tf-1")
-        runHmmScan(outPath, args.hmm_cpu, dbDir, str(args.tf_eval), str(args.tf_cov), "tf-2")
+        runHmmScan(outPath, args.hmm_cpu, dbDir, str(args.tf_eval), str(args.tf_cov), "tf-1.hmm")
+        runHmmScan(outPath, args.hmm_cpu, dbDir, str(args.tf_eval), str(args.tf_cov), "tf-2.hmm")
         '''
         stp hmmer
         '''
-        runHmmScan(outPath, args.hmm_cpu, dbDir, str(args.stp_eval), str(args.stp_cov), "stp")
+        runHmmScan(outPath, args.hmm_cpu, dbDir, str(args.stp_eval), str(args.stp_cov), "stp.hmm")
 
         '''
         tp diamond
