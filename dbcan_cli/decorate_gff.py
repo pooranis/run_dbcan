@@ -4,7 +4,7 @@ Decorates input gff file with annotations from run_dbcan.
 For usage::
 
     make_gff.py --help
-    
+
 """
 
 
@@ -15,8 +15,9 @@ import errno
 from dbcan.utils import printmsg
 
 CONST_SOURCE = "run_dbcan_"+version('dbcan')
+CONST_FEAT = "CDS"
 
-def write_gff(auxFile, outputgff, source = CONST_SOURCE,
+def write_gff(auxFile, outputgff, source = CONST_SOURCE, feature = CONST_FEAT,
              cazyme_genes = None, tf_genes = None, tp_genes = None, stp_genes = None):
     """write gff file
 
@@ -33,7 +34,7 @@ def write_gff(auxFile, outputgff, source = CONST_SOURCE,
             for line in f:
                 if not line.startswith("#"):
                     row = line.rstrip().split('\t')
-                    if row[2] == "CDS":
+                    if row[2] == feature:
                         note = row[8].strip().rstrip(";").split(";")
                         ID = ""
                         notes = {}
@@ -82,7 +83,7 @@ def get_cgc_genes(out_dir, out_pre):
     Args:
         out_dir (str): directory containing output of CGC finder
         out_pre (str): prefix of filenames (can be '')
-    
+
     Returns:
         tuple of 3 dictionaries mapping from sequence IDs to output of search with
         particular DB annotation info.
@@ -207,7 +208,7 @@ def get_cazyme_genes(out_dir, out_prefix):
     cazyme_genes = {key: cazyme_genes[key] for key in cazyme}
     return(cazyme_genes)
 
-def make_gff(input_gff, output_gff, outDir, out_pre, cgc_genes=False, source=CONST_SOURCE):
+def make_gff(input_gff, output_gff, outDir, out_pre, cgc_genes=False, source=CONST_SOURCE, feature=CONST_FEAT):
     """make gff file
 
     Args:
@@ -220,7 +221,7 @@ def make_gff(input_gff, output_gff, outDir, out_pre, cgc_genes=False, source=CON
     (tf_genes, tp_genes, stp_genes) = [None, None, None]
     if cgc_genes:
         (tf_genes, tp_genes, stp_genes) = get_cgc_genes(outDir, out_pre)
-    write_gff(auxFile = input_gff, source = source, outputgff = output_gff,
+    write_gff(auxFile = input_gff, source = source, feature = feature, outputgff = output_gff,
              cazyme_genes = cazyme_genes, tf_genes = tf_genes, tp_genes = tp_genes, stp_genes = stp_genes)
 
 
@@ -233,8 +234,9 @@ if __name__ == "__main__":
     req.add_argument('-d', '--dir', help='Directory containing result of run_dbcan', required=True)
     parser.add_argument('-p', '--prefix', help='Files prefix from result of run_dbcan', default='')
     parser.add_argument('-c', '--cgc_genes', help='Use result of CGC Finder step.', action='store_true')
+    parser.add_argument('-f', '--feature', help='Feature type to annotate.  Name or ID should match IDs used by dbcan (default: %(default)s).', default=CONST_FEAT)
     parser.add_argument('-s', '--source', help='Source field for GFF (default: %(default)s).', default=CONST_SOURCE)
     parser._action_groups.reverse()
     args = parser.parse_args()
 
-    make_gff(args.input_gff, args.output_gff, args.dir, args.prefix, cgc_genes = args.cgc_genes, source = args.source)
+    make_gff(args.input_gff, args.output_gff, args.dir, args.prefix, cgc_genes = args.cgc_genes, source = args.source, feature = args.feature)
