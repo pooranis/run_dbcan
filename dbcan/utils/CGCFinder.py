@@ -15,15 +15,7 @@
 
 
 
-#set up argument parser
-# parser = argparse.ArgumentParser(description='CAZyme Gene Cluster Finder')
 
-# parser.add_argument('gffFile', help='GFF file containing genome information')
-# parser.add_argument('--distance', '-d', type=int, choices=[0,1,2,3,4,5,6,7,8,9,10], default=2, help='The distance allowed between two signature genes')
-# parser.add_argument('--siggenes', '-s', choices=['all', 'tp', 'tf','stp','tp+tf','tp+stp','tf+stp'], default='all', help='Signature genes types required. all=CAZymes,TC,TF; tp=CAZymes,TC; tf=CAZymes,TF')
-# parser.add_argument('--output', '-o', help='Output file name')
-
-# args = parser.parse_args()
 
 
 # #open output file
@@ -35,7 +27,7 @@ num_clusters = 0
 
 
 #define boolean function to determine if a cluster meets cluster requirements
-def isCluster(siggenes): 
+def isCluster(siggenes):
 	global cluster
 	if siggenes == 'all':
 		if cluster[0] > 0 and cluster[1] > 0 and cluster[2] > 0 and cluster[3]:
@@ -80,7 +72,7 @@ def isSigGene(gene):
 		return True
 	else:
 		return False
-		
+
 #define function to increase the cluster count
 def increaseClusterCount(gene):
 	global cluster
@@ -138,7 +130,7 @@ def startSearch(startRow, contig, distance, siggene, out):
 				out.write('+++++' + '\n')
 			cluster = [0, 0, 0, 0]
 			return index
-			
+
 #define function to find how close important genes are to each other
 def findNear(contig, index, siggene):
 	vals = ['null', 'null']
@@ -166,7 +158,7 @@ def cgc_finder(gffFile, distance, siggenes, output):
 	#open output file
 	out = open(output, 'w+')
 
-	#load contig into an array 
+	#load contig into an array
 	contigs = {}
 	with open(gffFile) as f:
 		for line in f:
@@ -182,12 +174,25 @@ def cgc_finder(gffFile, distance, siggenes, output):
 		i = 0
 		while i < len(contig) - 1:
 			fd = contig[i][2]
-			
+
 			if isImportant(fd, siggenes):
 				increaseClusterCount(fd)
 				i = startSearch(i, contig, distance, siggenes, out)
 			else:
 				i += 1
-				
+
 	if output != 'none':
 		out.close()
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description='CAZyme Gene Cluster Finder')
+
+    parser.add_argument('gffFile', help='GFF file containing genome information')
+    parser.add_argument('--distance', '-d', type=int, choices=[0,1,2,3,4,5,6,7,8,9,10], default=2, help='The distance allowed between two signature genes')
+    parser.add_argument('--siggenes', '-s', choices=['all', 'tp', 'tf','stp','tp+tf','tp+stp','tf+stp'], default='all', help='Signature genes types required. all=CAZymes,TC,TF; tp=CAZymes,TC; tf=CAZymes,TF')
+    parser.add_argument('--output', '-o', help='Output file name')
+
+    args = parser.parse_args()
+    cgc_finder(args.gffFile, args.distance, args.siggenes, args.output)
